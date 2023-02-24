@@ -10,7 +10,7 @@ import torch.nn
 from PIL import Image
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
-
+import random
 
 class VOCDataset(Dataset):
     CLASS_NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
@@ -66,9 +66,17 @@ class VOCDataset(Dataset):
 
             # The weight vector should be a 20-dimensional vector with weight[i] = 0 iff an object of class i has the `difficult` attribute set to 1 in the XML file and 1 otherwise
             # The difficult attribute specifies whether a class is ambiguous and by setting its weight to zero it does not contribute to the loss during training 
-            weight_vec = torch.ones(20)
+            weight_vec = torch.zeros(20)
 
-            # TODO insert your code here
+            root = tree.getroot()
+            for child in root:
+                if child.tag == 'object':
+                    class_name = child[0].text
+                    class_index = self.INV_CLASS[class_name]
+                    class_vec[class_index]=1
+
+                    if child[3].text == '0':    #TODO: is the logic correct?
+                        weight_vec[class_index]=1
 
             label_list.append((class_vec, weight_vec))
 
@@ -81,7 +89,14 @@ class VOCDataset(Dataset):
         # Some commonly used ones are random crops, flipping, rotation
         # You are encouraged to read the docs https://pytorch.org/vision/stable/transforms.html
         # Depending on the augmentation you use, your final image size will change and you will have to write the correct value of `flat_dim` in line 46 in simple_cnn.py
-        pass
+        
+        if self.split == "test": 
+            return [transforms.CenterCrop(self.size)]
+        else:
+            ts=[transforms.RandomCrop(self.size), transforms.RandomVerticalFlip(), transforms.RandomHorizontalFlip()] #TODO: should I pick and send a randomly picked set of augmentation functions?
+            return random.sample(ts,k=random.randint(1,len(ts)))
+
+
 
     def __getitem__(self, index):
         """

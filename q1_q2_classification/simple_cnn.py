@@ -38,11 +38,12 @@ class SimpleCNN(nn.Module):
         self.pool2 = nn.AvgPool2d(2, 2)
 
         # TODO set the correct dim here
-        self.flat_dim = None
+        self.flat_dim = 100
 
         # Sequential is another way of chaining the layers.
         self.fc1 = nn.Sequential(*get_fc(self.flat_dim, 128, 'none'))
         self.fc2 = nn.Sequential(*get_fc(128, num_classes, 'none'))
+        #TODO: something with augmentaion that needs fixing here?
 
     def forward(self, x):
         """

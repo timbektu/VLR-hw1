@@ -41,13 +41,15 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
 
             optimizer.zero_grad()
             output = model(data)
+            batch_size = data.shape[0]
             
             # TODO implement a suitable loss function for multi-label classification
             # This function should take in network `output`, ground-truth `target`, weights `wgt` and return a single floating point number
             # You are NOT allowed to use any pytorch built-in functions
             # Remember to take care of underflows / overflows when writing your function
-            loss = 0
-
+            pre_sum = wgt*(target*torch.log(output) + (1-target)*torch.log(1-output))
+            loss = -torch.sum(pre_sum)/batch_size #TODO: logexp trick? check for correctness of batch_size etc?
+            
             loss.backward()
             
             if cnt % args.log_every == 0:
