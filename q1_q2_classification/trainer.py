@@ -47,9 +47,15 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             # This function should take in network `output`, ground-truth `target`, weights `wgt` and return a single floating point number
             # You are NOT allowed to use any pytorch built-in functions
             # Remember to take care of underflows / overflows when writing your function
+            output = torch.sigmoid(output)
+            output = torch.clamp(output, min=1e-7, max=1-1e-7)
+            # print("Here in train")
+            # print(target.shape, output.shape)
             pre_sum = wgt*(target*torch.log(output) + (1-target)*torch.log(1-output))
             loss = -torch.sum(pre_sum)/batch_size #TODO: logexp trick? check for correctness of batch_size etc?
-            
+            # print (f'In trainer: presum: {pre_sum}, loss: {loss}')
+            # print (f'output: {output.shape, pre_sum.shape}')
+            # print (f'wgt: {wgt}')
             loss.backward()
             
             if cnt % args.log_every == 0:
@@ -78,7 +84,7 @@ def train(args, model, optimizer, scheduler=None, model_name='model'):
             writer.add_scalar("learning_rate", scheduler.get_last_lr()[0], cnt)
 
         # save model
-        if save_this_epoch(args, epoch):
+        if (epoch == args.epochs-2):
             save_model(epoch, model_name, model)
 
     # Validation iteration

@@ -14,11 +14,16 @@ class ResNet(nn.Module):
         super().__init__()
 
         self.resnet = torchvision.models.resnet18(weights='IMAGENET1K_V1')
-        
-        # TODO define a FC layer here to process the features
+        self.resnet.fc = nn.Linear(512, num_classes)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         # TODO return unnormalized log-probabilities here
+
+        # print(self.resnet)
+        res_feats = self.resnet(x)
+        output = self.sigmoid(res_feats)
+        return output
 
 
 if __name__ == "__main__":
@@ -32,16 +37,16 @@ if __name__ == "__main__":
 
     # TODO experiment a little and choose the correct hyperparameters
     # You should get a map of around 50 in 50 epochs
-    # args = ARGS(
-    #     epochs=50,
-    #     inp_size=64,
-    #     use_cuda=True,
-    #     val_every=70
-    #     lr=# TODO,
-    #     batch_size=#TODO,
-    #     step_size=#TODO,
-    #     gamma=#TODO
-    # )
+    args = ARGS(
+        epochs=50,
+        inp_size=224,
+        use_cuda=True,
+        val_every=70,
+        lr=5e-5 ,
+        batch_size=128,
+        step_size=10,
+        gamma=0.3,
+    )
 
     
     print(args)

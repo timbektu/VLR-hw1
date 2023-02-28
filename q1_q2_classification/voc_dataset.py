@@ -27,6 +27,9 @@ class VOCDataset(Dataset):
         self.size = size
         self.img_dir = os.path.join(data_dir, 'JPEGImages')
         self.ann_dir = os.path.join(data_dir, 'Annotations')
+        self.CLASS_NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
+                   'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
+                   'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
 
         split_file = os.path.join(data_dir, 'ImageSets/Main', split + '.txt')
         with open(split_file) as fp:
@@ -46,6 +49,7 @@ class VOCDataset(Dataset):
         return len(self.index_list)    
 
 
+    #TODO: weight_vec and weight intiitalisation loop later is sketchy. check?
     def preload_anno(self):
         """
         :return: a list of labels. each element is in the form of [class, weight],
@@ -55,7 +59,8 @@ class VOCDataset(Dataset):
         for index in self.index_list:
             fpath = os.path.join(self.ann_dir, index + '.xml')
             tree = ET.parse(fpath)
-            
+            root = tree.getroot()
+
             # Insert your code here to preload labels
             # Hint: the folder Annotations contains .xml files with class labels for objects in the image
             # The `tree` variable contains the .xml information in an easy-to-access format (it might be useful to read https://docs.python.org/3/library/xml.etree.elementtree.html)
@@ -66,9 +71,8 @@ class VOCDataset(Dataset):
 
             # The weight vector should be a 20-dimensional vector with weight[i] = 0 iff an object of class i has the `difficult` attribute set to 1 in the XML file and 1 otherwise
             # The difficult attribute specifies whether a class is ambiguous and by setting its weight to zero it does not contribute to the loss during training 
-            weight_vec = torch.zeros(20)
-
-            root = tree.getroot()
+            weight_vec = torch.ones(20)
+            
             for child in root:
                 if child.tag == 'object':
                     class_name = child[0].text
@@ -91,10 +95,12 @@ class VOCDataset(Dataset):
         # Depending on the augmentation you use, your final image size will change and you will have to write the correct value of `flat_dim` in line 46 in simple_cnn.py
         
         if self.split == "test": 
-            return [transforms.CenterCrop(self.size)]
+            # return [transforms.CenterCrop(self.size)]
+            return []
         else:
-            ts=[transforms.RandomCrop(self.size), transforms.RandomVerticalFlip(), transforms.RandomHorizontalFlip()] #TODO: should I pick and send a randomly picked set of augmentation functions?
+            ts=[transforms.RandomHorizontalFlip(0.5), transforms.ColorJitter()] #TODO: should I pick and send a randomly picked set of augmentation functions?
             return random.sample(ts,k=random.randint(1,len(ts)))
+            # return []
 
 
 
@@ -112,7 +118,7 @@ class VOCDataset(Dataset):
         img = Image.open(fpath)
 
         trans = transforms.Compose([
-            transforms.Resize(self.size),
+            transforms.Resize((self.size, self.size)),
             *self.get_random_augmentations(),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.457, 0.407], std=[0.5, 0.5, 0.5]),

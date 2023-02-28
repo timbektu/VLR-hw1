@@ -207,6 +207,7 @@ def train_detector(
 
     # Keep track of training loss for plotting.
     loss_history = []
+    loss_iter = []
 
     train_loader = infinite_loader(train_loader)
     detector.train()
@@ -231,6 +232,7 @@ def train_detector(
         lr_scheduler.step()
         for key, value in losses.items():
             writer.add_scalar("train/" + key + "_{}".format("overfit" if overfit else "full"), value, _iter)
+        
         # Print losses periodically.
         if _iter % log_period == 0:
             loss_str = f"[Iter {_iter}][loss: {total_loss:.3f}]"
@@ -238,10 +240,27 @@ def train_detector(
                 loss_str += f"[{key}: {value:.3f}]"
             print(loss_str)
             loss_history.append(total_loss.item())
+            loss_iter.append(_iter)
+            writer.add_scalar("train/" + "loss_total" + "_{}".format("overfit" if overfit else "full"), total_loss.item(), _iter)
             
         writer.close()
     print("Finished training, saving model.")
     torch.save(detector.state_dict(), "fcos_detector.pt")
+    
+    if overfit:
+        plt.plot(loss_iter, loss_history, label="overfit")
+        plt.xlabel("iterations")
+        plt.ylabel("total loss")
+        plt.legend()
+        plt.savefig('overfit.png')
+
+    else:
+        plt.plot(loss_iter, loss_history, label="full training")
+        plt.xlabel("iterations")
+        plt.ylabel("total loss")
+        plt.legend()
+        plt.savefig('full_train.png')
+
 
 def inference_with_detector(
     detector,
@@ -253,6 +272,7 @@ def inference_with_detector(
     dtype: torch.dtype = torch.float32,
     device:str = "cpu",
 ):
+    print("Ah2")
    
     # ship model to GPU
     detector.to(dtype=dtype, device=device)
@@ -282,16 +302,20 @@ def inference_with_detector(
         if os.path.exists(gt_dir):
             shutil.rmtree(gt_dir)
         os.mkdir(gt_dir)
+        print("Ah3")
 
     all_images = []
+    print("AH 11")
 
     for iter_num, test_batch in enumerate(test_loader):
+
         image_paths, images, gt_boxes = test_batch
         images = images.to(dtype=dtype, device=device)
 
         with torch.no_grad():
             if score_thresh is not None and nms_thresh is not None:
                 # shapes: (num_preds, 4) (num_preds, ) (num_preds, )
+                # print(score_thresh, nms_thresh)
                 pred_boxes, pred_classes, pred_scores = detector(
                     images,
                     test_score_thresh=score_thresh,
@@ -324,8 +348,10 @@ def inference_with_detector(
         )
 
         # write results to file for evaluation (use mAP API https://github.com/Cartucho/mAP for now...)
+        # print("Arriving here")
         if output_dir is not None:
             file_name = os.path.basename(image_path).replace(".jpg", ".txt")
+            # print("Arriving in File Writer on mAP", file_name)
             with open(os.path.join(det_dir, file_name), "w") as f_det, open(
                 os.path.join(gt_dir, file_name), "w"
             ) as f_gt:
@@ -342,11 +368,17 @@ def inference_with_detector(
                 image, idx_to_class, gt_boxes, pred_boxes
             )
             all_images.append(torch.from_numpy(image))
-    
+    print("AH 10")
     if output_dir is None:
-        writer=SummaryWriter("detection_logs")
-        image_grid = make_grid(all_images, nrow=8)
+        print("PRINTING TEST INFERENCE")
+        writer=SummaryWriter("detection_logs2")
+        print(len(all_images))
+        image_grid = make_grid(all_images, nrow=2)
         writer.add_image("test_images", image_grid)
+        print("last lap")
+        print(image_grid.shape, image_grid.permute(1, 2, 0).shape)
+        plt.imshow(image_grid.permute(1, 2, 0))
+        plt.imsave('test_inf.jpg', image_grid.permute(1, 2, 0).cpu().numpy())
         writer.close()
     end_t = time.time()
     print(f"Total inference time: {end_t-start_t:.1f}s")

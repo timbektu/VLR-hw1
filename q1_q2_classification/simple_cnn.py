@@ -17,6 +17,8 @@ def get_fc(inp_dim, out_dim, non_linear='relu'):
         layers.append(nn.ReLU())
     elif non_linear == 'softmax':
         layers.append(nn.Softmax(dim=1))
+    elif non_linear == 'sigmoid':
+        layers.append(nn.Sigmoid())
     elif non_linear == 'none':
         pass
     else:
@@ -38,7 +40,7 @@ class SimpleCNN(nn.Module):
         self.pool2 = nn.AvgPool2d(2, 2)
 
         # TODO set the correct dim here
-        self.flat_dim = 100
+        self.flat_dim = 16384
 
         # Sequential is another way of chaining the layers.
         self.fc1 = nn.Sequential(*get_fc(self.flat_dim, 128, 'none'))
@@ -61,6 +63,6 @@ class SimpleCNN(nn.Module):
         x = self.pool2(x)
 
         flat_x = x.view(N, self.flat_dim)
-        out = self.fc1(flat_x)
+        out = self.fc1(flat_x) 
         out = self.fc2(out)
         return out
