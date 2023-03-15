@@ -1,4 +1,4 @@
 # VLR-hw1
 Classification and Detection
 
-Implementation of [FCOS Paper](https://arxiv.org/abs/1904.01355)
+Documentation and implementation of [FCOS Paper](https://arxiv.org/abs/1904.01355) in VLR-hw1/detection.
